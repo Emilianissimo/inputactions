@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Cinemachine;
 using Game.Scripts.UI;
+using UnityEngine.InputSystem; // Подключаем новую систему ввода
 
 namespace Game.Scripts.LiveObjects
 {
@@ -25,6 +26,16 @@ namespace Game.Scripts.LiveObjects
         private CinemachineVirtualCamera _droneCam;
         [SerializeField]
         private InteractableZone _interactableZone;
+
+        [Header("New Input Actions")]
+        [SerializeField]
+        private InputActionReference _tiltAction;       // Vector2 (WASD) для наклонов
+        [SerializeField]
+        private InputActionReference _yawAction;        // Axis (Left/Right Arrows) для разворота
+        [SerializeField]
+        private InputActionReference _throttleAction;   // Axis (Space/V) для высоты
+        [SerializeField]
+        private InputActionReference _exitFlightAction; // Button (Escape) для выхода
         
 
         public static event Action OnEnterFlightMode;
@@ -62,7 +73,8 @@ namespace Game.Scripts.LiveObjects
                 CalculateTilt();
                 CalculateMovementUpdate();
 
-                if (Input.GetKeyDown(KeyCode.Escape))
+                // Выход из режима полета по триггеру экшена
+                if (_exitFlightAction != null && _exitFlightAction.action.triggered)
                 {
                     _inFlightMode = false;
                     onExitFlightmode?.Invoke();
@@ -80,28 +92,31 @@ namespace Game.Scripts.LiveObjects
 
         private void CalculateMovementUpdate()
         {
-            if (Input.GetKey(KeyCode.LeftArrow))
+            if (_yawAction == null) return;
+
+            // Читаем значение оси разворота (-1 — влево, 1 — вправо)
+            float yawInput = _yawAction.action.ReadValue<float>();
+
+            if (Mathf.Abs(yawInput) > 0.01f)
             {
                 var tempRot = transform.localRotation.eulerAngles;
-                tempRot.y -= _speed / 3;
-                transform.localRotation = Quaternion.Euler(tempRot);
-            }
-            if (Input.GetKey(KeyCode.RightArrow))
-            {
-                var tempRot = transform.localRotation.eulerAngles;
-                tempRot.y += _speed / 3;
+                tempRot.y += yawInput * (_speed / 3);
                 transform.localRotation = Quaternion.Euler(tempRot);
             }
         }
 
         private void CalculateMovementFixedUpdate()
         {
-            
-            if (Input.GetKey(KeyCode.Space))
+            if (_throttleAction == null) return;
+
+            // Читаем значение вертикальной оси (1 — вверх, -1 — вниз)
+            float throttleInput = _throttleAction.action.ReadValue<float>();
+
+            if (throttleInput > 0.01f) // Аналог Space
             {
                 _rigidbody.AddForce(transform.up * _speed, ForceMode.Acceleration);
             }
-            if (Input.GetKey(KeyCode.V))
+            else if (throttleInput < -0.01f) // Аналог V
             {
                 _rigidbody.AddForce(-transform.up * _speed, ForceMode.Acceleration);
             }
@@ -109,16 +124,23 @@ namespace Game.Scripts.LiveObjects
 
         private void CalculateTilt()
         {
-            if (Input.GetKey(KeyCode.A)) 
-                transform.rotation = Quaternion.Euler(00, transform.localRotation.eulerAngles.y, 30);
-            else if (Input.GetKey(KeyCode.D))
-                transform.rotation = Quaternion.Euler(0, transform.localRotation.eulerAngles.y, -30);
-            else if (Input.GetKey(KeyCode.W))
-                transform.rotation = Quaternion.Euler(30, transform.localRotation.eulerAngles.y, 0);
-            else if (Input.GetKey(KeyCode.S))
-                transform.rotation = Quaternion.Euler(-30, transform.localRotation.eulerAngles.y, 0);
-            else 
-                transform.rotation = Quaternion.Euler(0, transform.localRotation.eulerAngles.y, 0);
+            if (_tiltAction == null) return;
+
+            // Читаем двумерный вектор направления (X: A/D, Y: S/W)
+            Vector2 tiltInput = _tiltAction.action.ReadValue<Vector2>();
+            float currentY = transform.localRotation.eulerAngles.y;
+
+            // Сохраняем исходный приоритет проверок старого скрипта (A -> D -> W -> S)
+            if (tiltInput.x < -0.1f)      // Нажата A
+                transform.rotation = Quaternion.Euler(0, currentY, 30);
+            else if (tiltInput.x > 0.1f)  // Нажата D
+                transform.rotation = Quaternion.Euler(0, currentY, -30);
+            else if (tiltInput.y > 0.1f)  // Нажата W
+                transform.rotation = Quaternion.Euler(30, currentY, 0);
+            else if (tiltInput.y < -0.1f) // Нажата S
+                transform.rotation = Quaternion.Euler(-30, currentY, 0);
+            else                          // Ничего не нажато
+                transform.rotation = Quaternion.Euler(0, currentY, 0);
         }
 
         private void OnDisable()
