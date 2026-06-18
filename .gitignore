@@ -1,0 +1,51 @@
+# ====== Юнити-специфичные папки и кэш ======
+/[尝尝]/
+/[尝尝]_Data/
+/Library/
+/Temp/
+/Obj/
+/Logs/
+/MemoryCaptures/
+/Build/
+/Builds/
+/DerivedData/
+/UserSettings/
+
+# ====== Сборки проекта и логи ======
+*.apk
+*.aab
+*.unitypackage
+*.log
+
+# ====== Конфиги и временные файлы IDE (Visual Studio, Rider, VS Code) ======
+.vs/
+.idea/
+.vscode/
+/*.sln
+/*.csproj
+/*.unityproj
+/*.suo
+/*.user
+/*.userprefs
+/*.pidb
+/*.booproj
+/*.svd
+/*.pdb
+/*.opendb
+/*.VC.db
+
+# ====== Кэш операционных систем ======
+.DS_Store
+Thumbs.db
+
+# ====== Кэш краш-репортов ======
+sysinfo.txt
+
+# ====== Локальные файлы конфигурации (если используешь кастомные билды) ======
+/Assets/AssetStoreTools*
+
+# ====== Исключения для пакетов (если они скачиваются локально) ======
+/Packages/manifest.json
+/Packages/packages-lock.json
+!/Packages/manifest.json
+!/Packages/packages-lock.json
