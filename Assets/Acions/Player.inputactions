@@ -71,6 +71,17 @@
                     "action": "move",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "b15d255a-09bf-497f-966e-612b5a4caccc",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "move",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         },
@@ -268,6 +279,17 @@
                     "isPartOfComposite": true
                 },
                 {
+                    "name": "",
+                    "id": "5cd06ab8-c1c5-47af-b0fe-eb59acba6ba1",
+                    "path": "<Gamepad>/leftStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "tilt",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
                     "name": "1D Axis",
                     "id": "710a9c23-d839-40fc-8c93-940fb7365cda",
                     "path": "1DAxis",
@@ -299,6 +321,17 @@
                     "action": "yaw",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "97d1fe23-63c7-441e-9b15-4f93177083e0",
+                    "path": "<Gamepad>/rightStick/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "yaw",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 },
                 {
                     "name": "1D Axis",
