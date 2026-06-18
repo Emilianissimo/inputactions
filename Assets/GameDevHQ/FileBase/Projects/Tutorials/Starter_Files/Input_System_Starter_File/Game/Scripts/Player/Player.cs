@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Game.Scripts.LiveObjects;
-using Cinemachine;
+using Unity.Cinemachine;
 
 namespace Game.Scripts.Player
 {
@@ -22,9 +23,19 @@ namespace Game.Scripts.Player
         [SerializeField]
         private GameObject _model;
 
+        [SerializeField] private InputActionAsset _inputActions;
+        private InputAction _moveAction;
+
+        private void Awake()
+        {
+            var actionMap = _inputActions.FindActionMap("movement"); 
+            _moveAction = actionMap.FindAction("move");
+        }
+
 
         private void OnEnable()
         {
+            _moveAction.Enable();
             InteractableZone.onZoneInteractionComplete += InteractableZone_onZoneInteractionComplete;
             Laptop.onHackComplete += ReleasePlayerControl;
             Laptop.onHackEnded += ReturnPlayerControl;
@@ -58,17 +69,17 @@ namespace Game.Scripts.Player
         private void CalcutateMovement()
         {
             _playerGrounded = _controller.isGrounded;
-            float h = Input.GetAxisRaw("Horizontal");
-            float v = Input.GetAxisRaw("Vertical");
+            
+            Vector2 input = _moveAction.ReadValue<Vector2>();
+            float h = input.x;
+            float v = input.y;
 
             transform.Rotate(transform.up, h);
 
             var direction = transform.forward * v;
             var velocity = direction * _speed;
 
-
             _anim.SetFloat("Speed", Mathf.Abs(velocity.magnitude));
-
 
             if (_playerGrounded)
                 velocity.y = 0f;
@@ -77,8 +88,7 @@ namespace Game.Scripts.Player
                 velocity.y += -20f * Time.deltaTime;
             }
             
-            _controller.Move(velocity * Time.deltaTime);                      
-
+            _controller.Move(velocity * Time.deltaTime);                     
         }
 
         private void InteractableZone_onZoneInteractionComplete(InteractableZone zone)
@@ -119,6 +129,7 @@ namespace Game.Scripts.Player
 
         private void OnDisable()
         {
+            _moveAction.Disable();
             InteractableZone.onZoneInteractionComplete -= InteractableZone_onZoneInteractionComplete;
             Laptop.onHackComplete -= ReleasePlayerControl;
             Laptop.onHackEnded -= ReturnPlayerControl;
