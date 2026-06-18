@@ -2,7 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem; // Пространство имен новой системы ввода
+using UnityEngine.InputSystem; 
 using Game.Scripts.UI;
 
 namespace Game.Scripts.LiveObjects
@@ -49,21 +49,21 @@ namespace Game.Scripts.LiveObjects
 
         private bool _inHoldState = false;
         
-        // Флаг для эмуляции отпускания клавиши в текущем кадре
         private bool _wasReleasedThisFrame = false; 
+
+        // Инфраструктура для динамического расчета силы удара
+        private float _continuousHoldTime = 0f;
+
+        /// <summary>
+        /// Множитель силы: 1x при тапе, разгон до 4x при удержании кнопки в течение 1.5 сек.
+        /// </summary>
+        public float CurrentForceMultiplier => Mathf.Clamp(1f + _continuousHoldTime * 2f, 1f, 4f);
 
         private static int _currentZoneID = 0;
         public static int CurrentZoneID
         { 
-            get 
-            { 
-               return _currentZoneID; 
-            }
-            set
-            {
-                _currentZoneID = value; 
-                                         
-            }
+            get { return _currentZoneID; }
+            set { _currentZoneID = value; }
         }
 
         public static event Action<InteractableZone> onZoneInteractionComplete;
@@ -74,7 +74,6 @@ namespace Game.Scripts.LiveObjects
         {
             InteractableZone.onZoneInteractionComplete += SetMarker;
 
-            // Подписываемся на событие отмены (отпускания) экшена
             if (_interactionAction != null)
             {
                 _interactionAction.action.canceled += OnActionCanceled;
@@ -132,63 +131,74 @@ namespace Game.Scripts.LiveObjects
         }
 
         private void Update()
-{
-    if (_inZone == true && _interactionAction != null)
-    {
-        var action = _interactionAction.action;
-
-        // action.triggered — встроенное свойство, аналог Input.GetKeyDown
-        if (action.triggered && _keyState != KeyState.PressHold)
         {
-            switch (_zoneType)
+            if (_inZone == true && _interactionAction != null)
             {
-                case ZoneType.Collectable:
-                    if (_itemsCollected == false)
+                var action = _interactionAction.action;
+
+                // Считаем время удержания, пока кнопка физически зажата
+                if (action.IsPressed())
+                {
+                    _continuousHoldTime += Time.deltaTime;
+                }
+                else
+                {
+                    _continuousHoldTime = 0f;
+                }
+
+                // Сценарий 1: Обычные клики ИЛИ непрерывное удержание для цикличных экшенов (Ящик)
+                if (_keyState != KeyState.PressHold)
+                {
+                    // Срабатывает при первом нажатии (triggered) ЛИБО если кнопка удерживается, а система разрешила повторный шаг (!_actionPerformed)
+                    if (action.triggered || (action.IsPressed() && !_actionPerformed))
                     {
-                        CollectItems();
-                        _itemsCollected = true;
-                        UIManager.Instance.DisplayInteractableZoneMessage(false);
+                        switch (_zoneType)
+                        {
+                            case ZoneType.Collectable:
+                                if (_itemsCollected == false)
+                                {
+                                    CollectItems();
+                                    _itemsCollected = true;
+                                    UIManager.Instance.DisplayInteractableZoneMessage(false);
+                                }
+                                break;
+
+                            case ZoneType.Action:
+                                if (_actionPerformed == false)
+                                {
+                                    PerformAction();
+                                    _actionPerformed = true;
+                                    UIManager.Instance.DisplayInteractableZoneMessage(false);
+                                }
+                                break;
+                        }
                     }
-                    break;
+                }
+                // Сценарий 2: Классический HoldAction для терминалов (без изменений логики)
+                else if (action.IsPressed() && _keyState == KeyState.PressHold && _inHoldState == false)
+                {
+                    _inHoldState = true;
 
-                case ZoneType.Action:
-                    if (_actionPerformed == false)
-                    {
-                        PerformAction();
-                        _actionPerformed = true;
-                        UIManager.Instance.DisplayInteractableZoneMessage(false);
+                    switch (_zoneType)
+                    {                                      
+                        case ZoneType.HoldAction:
+                            PerformHoldAction();
+                            break;           
                     }
-                    break;
+                }
+
+                if (_wasReleasedThisFrame && _keyState == KeyState.PressHold)
+                {
+                    _inHoldState = false;
+                    onHoldEnded?.Invoke(_zoneID);
+                }
             }
-        }
-        // IsPressed() — это метод расширения, обязательны скобки (), аналог Input.GetKey
-        else if (action.IsPressed() && _keyState == KeyState.PressHold && _inHoldState == false)
-        {
-            _inHoldState = true;
 
-            switch (_zoneType)
-            {                      
-                case ZoneType.HoldAction:
-                    PerformHoldAction();
-                    break;           
-            }
+            _wasReleasedThisFrame = false; 
         }
-
-        // Наш кастомный флаг для отпускания кнопки (остается без изменений)
-        if (_wasReleasedThisFrame && _keyState == KeyState.PressHold)
-        {
-            _inHoldState = false;
-            onHoldEnded?.Invoke(_zoneID);
-        }
-    }
-
-    // Сбрасываем флаг в конце кадра
-    _wasReleasedThisFrame = false; 
-}
-       
+               
         private void OnActionCanceled(InputAction.CallbackContext context)
         {
-            // Событие вызывается ровно в том кадре, когда клавишу отпустили
             _wasReleasedThisFrame = true; 
         }
 
@@ -262,6 +272,7 @@ namespace Game.Scripts.LiveObjects
             {
                 _inZone = false;
                 _inHoldState = false; 
+                _continuousHoldTime = 0f; // Сброс потенциального заряда силы
                 UIManager.Instance.DisplayInteractableZoneMessage(false);
             }
         }
@@ -270,7 +281,6 @@ namespace Game.Scripts.LiveObjects
         {
             InteractableZone.onZoneInteractionComplete -= SetMarker;
 
-            // Не забываем отписаться от колбэка при выключении объекта
             if (_interactionAction != null)
             {
                 _interactionAction.action.canceled -= OnActionCanceled;

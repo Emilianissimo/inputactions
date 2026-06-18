@@ -22,27 +22,32 @@ namespace Game.Scripts.LiveObjects
 
         private void InteractableZone_onZoneInteractionComplete(InteractableZone zone)
         {
-            
-            if (_isReadyToBreak == false && _brakeOff.Count >0)
+            // Фикс: изолируем логику, чтобы реагировать ТОЛЬКО на зону ящика (ID: 6)
+            if (zone.GetZoneID() == 6)
             {
-                _wholeCrate.SetActive(false);
-                _brokenCrate.SetActive(true);
-                _isReadyToBreak = true;
-            }
-
-            if (_isReadyToBreak && zone.GetZoneID() == 6) //Crate zone            
-            {
-                if (_brakeOff.Count > 0)
+                // Первый удар: подменяем целую модель на разбитую, но статичную
+                if (_isReadyToBreak == false && _brakeOff.Count > 0)
                 {
-                    BreakPart();
-                    StartCoroutine(PunchDelay());
+                    _wholeCrate.SetActive(false);
+                    _brokenCrate.SetActive(true);
+                    _isReadyToBreak = true;
                 }
-                else if(_brakeOff.Count == 0)
+
+                // Отлетание кусков по очереди
+                if (_isReadyToBreak)            
                 {
-                    _isReadyToBreak = false;
-                    _crateCollider.enabled = false;
-                    _interactableZone.CompleteTask(6);
-                    Debug.Log("Completely Busted");
+                    if (_brakeOff.Count > 0)
+                    {
+                        BreakPart();
+                        StartCoroutine(PunchDelay());
+                    }
+                    else if (_brakeOff.Count == 0)
+                    {
+                        _isReadyToBreak = false;
+                        _crateCollider.enabled = false;
+                        _interactableZone.CompleteTask(6);
+                        Debug.Log("Completely Busted");
+                    }
                 }
             }
         }
@@ -50,10 +55,7 @@ namespace Game.Scripts.LiveObjects
         private void Start()
         {
             _brakeOff.AddRange(_pieces);
-            
         }
-
-
 
         public void BreakPart()
         {
