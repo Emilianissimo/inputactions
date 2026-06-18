@@ -73,6 +73,102 @@
                     "isPartOfComposite": true
                 }
             ]
+        },
+        {
+            "name": "interact",
+            "id": "0f8b3cd8-a0fe-43dc-b8f0-470659b826d2",
+            "actions": [
+                {
+                    "name": "pickup",
+                    "type": "Button",
+                    "id": "97556222-2bf3-49fc-ad4c-ece632862b6f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "kaboom",
+                    "type": "Button",
+                    "id": "735ff929-9c33-4ad3-8c6b-ac80f5b22907",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "e67502be-62b5-4197-b897-d2875f3866ab",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "pickup",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "1cfd8af6-a5c3-4b10-9d5f-162612706e1b",
+                    "path": "<Keyboard>/space",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "kaboom",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "cam",
+            "id": "7e48f25b-d0fe-4860-b418-9ef98f97587f",
+            "actions": [
+                {
+                    "name": "nextCamera",
+                    "type": "Button",
+                    "id": "3690e733-f1ee-404b-9ebc-8097e3cdb41f",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "exit",
+                    "type": "Button",
+                    "id": "fab208d3-1c49-4002-9a08-4bebc77bc677",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "ccdef007-2ce4-42da-8243-af5876b6be4e",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "nextCamera",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e619e2cd-2c92-4d3e-ae14-128a1189fee1",
+                    "path": "<Keyboard>/escape",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "exit",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
         }
     ],
     "controlSchemes": []

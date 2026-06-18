@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem; // Пространство имен новой системы ввода
 using Game.Scripts.UI;
-
 
 namespace Game.Scripts.LiveObjects
 {
@@ -38,14 +38,19 @@ namespace Game.Scripts.LiveObjects
         private bool _actionPerformed = false;
         [SerializeField]
         private Sprite _inventoryIcon;
+
         [SerializeField]
-        private KeyCode _zoneKeyInput;
+        private InputActionReference _interactionAction;
+        
         [SerializeField]
         private KeyState _keyState;
         [SerializeField]
         private GameObject _marker;
 
         private bool _inHoldState = false;
+        
+        // Флаг для эмуляции отпускания клавиши в текущем кадре
+        private bool _wasReleasedThisFrame = false; 
 
         private static int _currentZoneID = 0;
         public static int CurrentZoneID
@@ -57,10 +62,9 @@ namespace Game.Scripts.LiveObjects
             set
             {
                 _currentZoneID = value; 
-                         
+                                         
             }
         }
-
 
         public static event Action<InteractableZone> onZoneInteractionComplete;
         public static event Action<int> onHoldStarted;
@@ -70,12 +74,19 @@ namespace Game.Scripts.LiveObjects
         {
             InteractableZone.onZoneInteractionComplete += SetMarker;
 
+            // Подписываемся на событие отмены (отпускания) экшена
+            if (_interactionAction != null)
+            {
+                _interactionAction.action.canceled += OnActionCanceled;
+            }
         }
 
         private void OnTriggerEnter(Collider other)
         {
-            if (other.CompareTag("Player") && _currentZoneID > _requiredID)
+            if (other.CompareTag("Player") && _currentZoneID > _requiredID && _interactionAction != null)
             {
+                string keyName = _interactionAction.action.GetBindingDisplayString();
+
                 switch (_zoneType)
                 {
                     case ZoneType.Collectable:
@@ -84,11 +95,11 @@ namespace Game.Scripts.LiveObjects
                             _inZone = true;
                             if (_displayMessage != null)
                             {
-                                string message = $"Press the {_zoneKeyInput.ToString()} key to {_displayMessage}.";
+                                string message = $"Press the {keyName} key to {_displayMessage}.";
                                 UIManager.Instance.DisplayInteractableZoneMessage(true, message);
                             }
                             else
-                                UIManager.Instance.DisplayInteractableZoneMessage(true, $"Press the {_zoneKeyInput.ToString()} key to collect");
+                                UIManager.Instance.DisplayInteractableZoneMessage(true, $"Press the {keyName} key to collect");
                         }
                         break;
 
@@ -98,11 +109,11 @@ namespace Game.Scripts.LiveObjects
                             _inZone = true;
                             if (_displayMessage != null)
                             {
-                                string message = $"Press the {_zoneKeyInput.ToString()} key to {_displayMessage}.";
+                                string message = $"Press the {keyName} key to {_displayMessage}.";
                                 UIManager.Instance.DisplayInteractableZoneMessage(true, message);
                             }
                             else
-                                UIManager.Instance.DisplayInteractableZoneMessage(true, $"Press the {_zoneKeyInput.ToString()} key to perform action");
+                                UIManager.Instance.DisplayInteractableZoneMessage(true, $"Press the {keyName} key to perform action");
                         }
                         break;
 
@@ -110,69 +121,77 @@ namespace Game.Scripts.LiveObjects
                         _inZone = true;
                         if (_displayMessage != null)
                         {
-                            string message = $"Press the {_zoneKeyInput.ToString()} key to {_displayMessage}.";
+                            string message = $"Press the {keyName} key to {_displayMessage}.";
                             UIManager.Instance.DisplayInteractableZoneMessage(true, message);
                         }
                         else
-                            UIManager.Instance.DisplayInteractableZoneMessage(true, $"Hold the {_zoneKeyInput.ToString()} key to perform action");
+                            UIManager.Instance.DisplayInteractableZoneMessage(true, $"Hold the {keyName} key to perform action");
                         break;
                 }
             }
         }
 
         private void Update()
+{
+    if (_inZone == true && _interactionAction != null)
+    {
+        var action = _interactionAction.action;
+
+        // action.triggered — встроенное свойство, аналог Input.GetKeyDown
+        if (action.triggered && _keyState != KeyState.PressHold)
         {
-            if (_inZone == true)
+            switch (_zoneType)
             {
-
-                if (Input.GetKeyDown(_zoneKeyInput) && _keyState != KeyState.PressHold)
-                {
-                    //press
-                    switch (_zoneType)
+                case ZoneType.Collectable:
+                    if (_itemsCollected == false)
                     {
-                        case ZoneType.Collectable:
-                            if (_itemsCollected == false)
-                            {
-                                CollectItems();
-                                _itemsCollected = true;
-                                UIManager.Instance.DisplayInteractableZoneMessage(false);
-                            }
-                            break;
-
-                        case ZoneType.Action:
-                            if (_actionPerformed == false)
-                            {
-                                PerformAction();
-                                _actionPerformed = true;
-                                UIManager.Instance.DisplayInteractableZoneMessage(false);
-                            }
-                            break;
+                        CollectItems();
+                        _itemsCollected = true;
+                        UIManager.Instance.DisplayInteractableZoneMessage(false);
                     }
-                }
-                else if (Input.GetKey(_zoneKeyInput) && _keyState == KeyState.PressHold && _inHoldState == false)
-                {
-                    _inHoldState = true;
+                    break;
 
-                   
-
-                    switch (_zoneType)
-                    {                      
-                        case ZoneType.HoldAction:
-                            PerformHoldAction();
-                            break;           
+                case ZoneType.Action:
+                    if (_actionPerformed == false)
+                    {
+                        PerformAction();
+                        _actionPerformed = true;
+                        UIManager.Instance.DisplayInteractableZoneMessage(false);
                     }
-                }
-
-                if (Input.GetKeyUp(_zoneKeyInput) && _keyState == KeyState.PressHold)
-                {
-                    _inHoldState = false;
-                    onHoldEnded?.Invoke(_zoneID);
-                }
-
-               
+                    break;
             }
         }
+        // IsPressed() — это метод расширения, обязательны скобки (), аналог Input.GetKey
+        else if (action.IsPressed() && _keyState == KeyState.PressHold && _inHoldState == false)
+        {
+            _inHoldState = true;
+
+            switch (_zoneType)
+            {                      
+                case ZoneType.HoldAction:
+                    PerformHoldAction();
+                    break;           
+            }
+        }
+
+        // Наш кастомный флаг для отпускания кнопки (остается без изменений)
+        if (_wasReleasedThisFrame && _keyState == KeyState.PressHold)
+        {
+            _inHoldState = false;
+            onHoldEnded?.Invoke(_zoneID);
+        }
+    }
+
+    // Сбрасываем флаг в конце кадра
+    _wasReleasedThisFrame = false; 
+}
        
+        private void OnActionCanceled(InputAction.CallbackContext context)
+        {
+            // Событие вызывается ровно в том кадре, когда клавишу отпустили
+            _wasReleasedThisFrame = true; 
+        }
+
         private void CollectItems()
         {
             foreach (var item in _zoneItems)
@@ -181,11 +200,8 @@ namespace Game.Scripts.LiveObjects
             }
 
             UIManager.Instance.UpdateInventoryDisplay(_inventoryIcon);
-
             CompleteTask(_zoneID);
-
             onZoneInteractionComplete?.Invoke(this);
-
         }
 
         private void PerformAction()
@@ -245,6 +261,7 @@ namespace Game.Scripts.LiveObjects
             if (other.CompareTag("Player"))
             {
                 _inZone = false;
+                _inHoldState = false; 
                 UIManager.Instance.DisplayInteractableZoneMessage(false);
             }
         }
@@ -252,9 +269,12 @@ namespace Game.Scripts.LiveObjects
         private void OnDisable()
         {
             InteractableZone.onZoneInteractionComplete -= SetMarker;
+
+            // Не забываем отписаться от колбэка при выключении объекта
+            if (_interactionAction != null)
+            {
+                _interactionAction.action.canceled -= OnActionCanceled;
+            }
         }       
-        
     }
 }
-
-

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Cinemachine;
+using UnityEngine.InputSystem; // Подключаем новую систему ввода
 
 namespace Game.Scripts.LiveObjects
 {
@@ -20,6 +21,13 @@ namespace Game.Scripts.LiveObjects
         [SerializeField]
         private InteractableZone _interactableZone;
 
+        // Новые поля для привязки действий ввода через инспектор
+        [Header("Input Actions")]
+        [SerializeField]
+        private InputActionReference _nextCameraAction;
+        [SerializeField]
+        private InputActionReference _exitHackAction;
+
         public static event Action onHackComplete;
         public static event Action onHackEnded;
 
@@ -33,21 +41,20 @@ namespace Game.Scripts.LiveObjects
         {
             if (_hacked == true)
             {
-                if (Input.GetKeyDown(KeyCode.E))
+                // action.triggered срабатывает ровно один раз в кадре нажатия (аналог GetKeyDown)
+                if (_nextCameraAction != null && _nextCameraAction.action.triggered)
                 {
                     var previous = _activeCamera;
                     _activeCamera++;
 
-
                     if (_activeCamera >= _cameras.Length)
                         _activeCamera = 0;
-
 
                     _cameras[_activeCamera].Priority = 11;
                     _cameras[previous].Priority = 9;
                 }
 
-                if (Input.GetKeyDown(KeyCode.Escape))
+                if (_exitHackAction != null && _exitHackAction.action.triggered)
                 {
                     _hacked = false;
                     onHackEnded?.Invoke();
@@ -88,7 +95,6 @@ namespace Game.Scripts.LiveObjects
             }
         }
 
-        
         IEnumerator HackingRoutine()
         {
             while (_progressBar.value < 1)
@@ -114,6 +120,4 @@ namespace Game.Scripts.LiveObjects
             InteractableZone.onHoldEnded -= InteractableZone_onHoldEnded;
         }
     }
-
 }
-
